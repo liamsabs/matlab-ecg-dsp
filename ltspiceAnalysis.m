@@ -13,7 +13,7 @@ noisyECG = audioread("noisy-ecg.wav", sampleRange, "double");               % No
 analogECG = audioread("filtered-ecg.wav", sampleRange, "double");   % Analog-filtered ECG signal
 
 %{
-Part 2: Basic Digital Filtering (Placeholder for Digital Filter Implementation)
+Part 2: Basic Digital Filtering
 %}
 
 %Preparing Bandpass Filter object
@@ -41,6 +41,27 @@ freqz(bsFilter,[],sampleRate); %Display frequency spectrum of filter
 bpECG = filtfilt(bpFilter,noisyECG); %Apply zero-phase filtering with bandpass
 bpbsECG = filtfilt(bsFilter,bpECG); %Apply zero-phase filtering with bandstop
 
+%{
+Part 3: Wavelet Transform (Placeholder for Digital Filter Implementation)
+%}
+
+%Running wavelet denoising
+waveletECG = wden(noisyECG,'heursure','h','one',100,'sym8');
+
+%{
+Part 4: Adaptive Filtering 
+%}
+
+% Set LMS filter parameters
+filterOrder = 32;       % Order of the adaptive filter (adjust as needed)
+stepSize = 0.01;        % Step size (learning rate) for the LMS algorithm (tune this value)
+
+% Create the LMS adaptive filter
+lms = dsp.LMSFilter(10000);
+
+[adaptiveECG, e, w] = lms(noisyECG,cleanECG);
+
+
 
 
 % Calculate time vector
@@ -48,14 +69,13 @@ timeVector = 0:seconds(1/sampleRate):seconds(sampleRange(2)/sampleRate);
 timeVector = timeVector(1:end-1);
 
 %plotting
-plot(t, bpbsECG, t, cleanECG);
+plot(timeVector, adaptiveECG, timeVector, cleanECG);
+legend('wavelet', 'analog')
 xlabel('Time');
 ylabel('Audio Signal');
 
-
-
 %{
-Part 3: Power and SNR Calculations
+Part 5: Power and SNR Calculations
 %}
 
 % Power calculations
@@ -71,11 +91,18 @@ bpbsSNR = 10 * log10(bpbsFilteredPower / noisePower);
 
 
 % LMSE calculation
-analogError = cleanECG - digitalFilteredECG; % Ensure 'digitalFilteredECG' is defined for LMSE
+
+analogError = cleanECG - analogECG; % Ensure 'digitalFilteredECG' is defined for LMSE
 analogLMSE = sqrt(mean(analogError.^2));
 
 bpbsError = cleanECG - bpbsECG;
 bpbsLMSE = sqrt(mean(bpbsError.^2));
+
+waveletError = cleanECG - waveletECG;
+waveletLMSE = sqrt(mean(waveletError.^2));
+
+adaptiveError = cleanECG - adaptiveECG;
+adaptiveLMSE = sqrt(mean(adaptiveError.^2));
 
 %{
 Part 4: Plotting Signals
